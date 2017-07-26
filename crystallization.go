@@ -1,12 +1,15 @@
 package main
 
-import "math/rand"
+import(
+     "math/rand"
+     "fmt"
+)
 
 const WIDTH = 1000
 const HEIGHT = 1000
 const AREA = WIDTH * HEIGHT
 const FLUX = 1000
-const CRITICAL = 2
+const CRITICAL = 10
 
 var grid [1000][1000]int
 var grid2 [1000][1000]int
@@ -57,7 +60,32 @@ func brownian() {
      g2 = temp
 }
 
+func find_crystals() {
+   var crystal_list [1][3]int
+   cl := crystal_list[:]
+   max := 0
+   for i := 0; i < WIDTH; i++ {
+       for j := 0; j < HEIGHT; j++ {
+       	   if g[i][j] >= CRITICAL {
+	      crystal := [3]int{i, j, g[i][j]}
+	      cl = append(cl, crystal)
+	   }
+	   if g[i][j] >= max {
+	      max = g[i][j]
+	   }
+       	}
+   } 
+   fmt.Print(cl)
+   fmt.Print(max)
+}
+     
+
 func main() {
-    add_monomers(100000)
-    brownian()
+    for i := 0; i < 5000; i++ {
+    	add_monomers(FLUX)
+    	brownian()
+	if i % 100 == 0{
+	    find_crystals()
+	}
+    }
 }
