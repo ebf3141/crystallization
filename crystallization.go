@@ -14,24 +14,51 @@ var AREA = WIDTH * HEIGHT
 var FLUX int
 var CRITICAL int
 var iterations int
-
+/*
 var grid [WIDTH][HEIGHT]int
 var grid2 [WIDTH][HEIGHT]int
 var g = &grid
 var g2 = &grid2
 
-func add_monomers(f int) {
+var wg sync.WaitGroup
+*/
+
+var g = makeGrid(WIDTH, HEIGHT)
+var g2 = makeGrid(WIDTH, HEIGHT)
+
+func addMonomers(f int) {
 	// adds f monomers
 	for i := 0; i < f; i++ {
-		xcoord := rand.Intn(WIDTH)
-		ycoord := rand.Intn(HEIGHT)
-		g[xcoord][ycoord]++
+		coord := rand.Intn(AREA)
+		g.grid[coord]++
 	}
 }
 
 func brownian() {
 	// moves the monomers around unless they are part of a crystal
-	for i := 0; i < WIDTH; i++ {
+	grid := g.grid
+	grid2 := g2.grid
+
+	for i := 0; i < AREA; i++ {
+		cell := grid[i]
+		if cell < CRITICAL {
+			for k := 0; k < cell; k++ {
+				newcoord := g.getRandomNeighbor(i)
+				grid2[newcoord]++
+			}
+		} else {
+			grid2[i]=grid[i]
+		}
+		grid[i] = 0
+	}
+	temp := g
+	g = g2
+	g2 = temp
+}
+/*
+func cBrownian(startRow int, endRow int){
+	// moves the monomers around unless they are part of a crystal
+	for i := startRow; i < endRow; i++ {
 		for j := 0; j < HEIGHT; j++ {
 			cell := g[i][j]
 			if cell < CRITICAL {
@@ -58,26 +85,35 @@ func brownian() {
 			g[i][j] = 0
 		}
 	}
+	wg.Done()
+}
+
+func syncBrownian() {
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go cBrownian(HEIGHT/4*i, HEIGHT/4*(i+1))
+	}
+	wg.Wait()
 	temp := g
 	g = g2
 	g2 = temp
 }
+*/
 
-func find_crystals() {
-	var crystal_list [1][3]int
-	cl := crystal_list[:]
+func findCrystals() {
+	var crystalList [1][3]int
+	cl := crystalList[:]
 	max := 0
 	count := 0
-	for i := 0; i < WIDTH; i++ {
-		for j := 0; j < HEIGHT; j++ {
-			if g[i][j] >= CRITICAL {
-				crystal := [3]int{i, j, g[i][j]}
-				cl = append(cl, crystal)
-				count++
-			}
-			if g[i][j] >= max {
-				max = g[i][j]
-			}
+	for i := 0; i < AREA; i++ {
+		if g.grid[i] >= CRITICAL {
+			x, y := g.indexToXY(i)
+			crystal := [3]int{x,y, g.grid[i]}
+			cl = append(cl, crystal)
+			count++
+		}
+		if g.grid[i] >= max {
+			max = g.grid[i]
 		}
 	}
 	//fmt.Print(cl)
@@ -91,17 +127,17 @@ func initialize() {
 	flag.IntVar(&iterations, "iter", 3000, "number of iterations")
 	flag.Parse()
 }
-	
 
 func main() {
 	initialize()
 	for i := 0; i < iterations; i++ {
-		add_monomers(FLUX)
+		addMonomers(FLUX)
 		brownian()
 		if i%200 == 0 {
 			fmt.Printf("\n Step: %d ", i)
-			find_crystals()
+			findCrystals()
 
 		}
 	}
+	g.createImage("test.png")
 }
