@@ -1,7 +1,7 @@
 package main
 
 import(
-	"math/rand"
+	"crystallization/fastrand"
 	"image"
 	"image/color"
 	"image/png"
@@ -12,10 +12,19 @@ type Grid struct {
 	W int
 	H int
 	grid []int
+	area int
+	nearestNeighborOffsets [9]int
 }
 
 func makeGrid(width, height int) *Grid {
-	return &Grid{width, height, make([]int, width*height)}
+	g := new(Grid)
+	g.W = width
+	g.H = height
+	g.grid = make([]int, width*height)
+	g.area = width * height
+	g.nearestNeighborOffsets = [9]int {-width - 1, -width, -width + 1, -1, 0, 1, width-1, width, width+1}
+	return g
+	//return &Grid{width, height, make([]int, width*height)}
 }
 	
 
@@ -49,9 +58,18 @@ func (g *Grid) indexDelta(index, dx, dy int) int {
 }
 
 func (g *Grid) getRandomNeighbor(c int) int {
-	deltaX := rand.Intn(3) - 1
-	deltaY := rand.Intn(3) - 1
-	return g.indexDelta(c, deltaX, deltaY)
+	//	deltaX := rand.Intn(3) - 1
+	//	deltaY := rand.Intn(3) - 1
+	//	return g.indexDelta(c, deltaX, deltaY)
+	offset := g.nearestNeighborOffsets[fastrand.Rand9()]
+	c += offset
+	if c < 0 {
+		c += g.area
+	}
+	if c >= g.area {
+		c -= g.area
+	}
+	return c
 }
 
 func (g *Grid) ColorModel() color.Model {

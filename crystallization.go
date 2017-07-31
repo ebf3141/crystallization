@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	"crystallization/fastrand"
 	"flag"
 )
 
@@ -29,7 +29,7 @@ var g2 = makeGrid(WIDTH, HEIGHT)
 func addMonomers(f int) {
 	// adds f monomers
 	for i := 0; i < f; i++ {
-		coord := rand.Intn(AREA)
+		coord := fastrand.Random.Intn(AREA)
 		g.grid[coord]++
 	}
 }
