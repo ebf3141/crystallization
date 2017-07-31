@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"crystallization/fastrand"
 	"flag"
+	"os"
+	"encoding/binary"
 )
 
 const WIDTH = 1000
@@ -14,6 +16,8 @@ var AREA = WIDTH * HEIGHT
 var FLUX int
 var CRITICAL int
 var iterations int
+var imageName string
+var dataName string
 /*
 var grid [WIDTH][HEIGHT]int
 var grid2 [WIDTH][HEIGHT]int
@@ -29,7 +33,7 @@ var g2 = makeGrid(WIDTH, HEIGHT)
 func addMonomers(f int) {
 	// adds f monomers
 	for i := 0; i < f; i++ {
-		coord := fastrand.Random.Intn(AREA)
+		coord := fastrand.Random.Int() % AREA
 		g.grid[coord]++
 	}
 }
@@ -38,11 +42,11 @@ func brownian() {
 	// moves the monomers around unless they are part of a crystal
 	grid := g.grid
 	grid2 := g2.grid
-
+	var k int32
 	for i := 0; i < AREA; i++ {
 		cell := grid[i]
-		if cell < CRITICAL {
-			for k := 0; k < cell; k++ {
+		if cell < int32(CRITICAL) {
+			for k = 0; k < cell; k++ {
 				newcoord := g.getRandomNeighbor(i)
 				grid2[newcoord]++
 			}
@@ -105,28 +109,50 @@ func findCrystals() {
 	cl := crystalList[:]
 	max := 0
 	count := 0
+	monomers := 0
 	for i := 0; i < AREA; i++ {
-		if g.grid[i] >= CRITICAL {
+		if g.grid[i] >= int32(CRITICAL) {
 			x, y := g.indexToXY(i)
-			crystal := [3]int{x,y, g.grid[i]}
+			crystal := [3]int{x,y, int(g.grid[i])}
 			cl = append(cl, crystal)
 			count++
+		} else {
+			monomers += int(g.grid[i])
 		}
-		if g.grid[i] >= max {
-			max = g.grid[i]
+		if int(g.grid[i]) >= max {
+			max = int(g.grid[i])
 		}
 	}
 	//fmt.Print(cl)
 	fmt.Printf("Max # monomers: %d ", max)
 	fmt.Printf("# Crystals: %d ", count)
+	fmt.Printf("Avg monomers: %f",float64(monomers)/float64(g.area))
 }
 
 func initialize() {
 	flag.IntVar(&FLUX, "flux", 1000, "number of monomers added / step")
 	flag.IntVar(&CRITICAL, "crit", 5, "critical number for crystallization")
 	flag.IntVar(&iterations, "iter", 3000, "number of iterations")
+	flag.StringVar(&imageName, "image", "crystals.png", "name for file containing image")
+	flag.StringVar(&dataName, "file", "data", "name for data file")
 	flag.Parse()
 }
+
+func writeGrid(filename string) {
+	f, _ := os.Create(filename)
+	binary.Write(f, binary.LittleEndian, uint32(0x21464245))//magic number: "EBF!"
+	binary.Write(f, binary.LittleEndian, uint32(g.W))
+	binary.Write(f, binary.LittleEndian, uint32(g.H))
+	binary.Write(f, binary.LittleEndian, uint32(FLUX))
+	binary.Write(f, binary.LittleEndian, uint32(CRITICAL))
+	binary.Write(f, binary.LittleEndian, uint32(iterations))
+	err := binary.Write(f, binary.LittleEndian, g.grid)
+	if err != nil {
+		fmt.Println("binary.Write failed:", err)
+	}
+	f.Close()
+}
+	
 
 func main() {
 	initialize()
@@ -139,5 +165,7 @@ func main() {
 
 		}
 	}
-	g.createImage("test.png")
+	g.createImage(imageName)
+	writeGrid(dataName)
+	
 }

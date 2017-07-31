@@ -11,7 +11,7 @@ import(
 type Grid struct {
 	W int
 	H int
-	grid []int
+	grid []int32
 	area int
 	nearestNeighborOffsets [9]int
 }
@@ -20,7 +20,7 @@ func makeGrid(width, height int) *Grid {
 	g := new(Grid)
 	g.W = width
 	g.H = height
-	g.grid = make([]int, width*height)
+	g.grid = make([]int32, width*height)
 	g.area = width * height
 	g.nearestNeighborOffsets = [9]int {-width - 1, -width, -width + 1, -1, 0, 1, width-1, width, width+1}
 	return g
