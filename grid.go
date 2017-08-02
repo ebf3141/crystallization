@@ -82,7 +82,10 @@ func (g *Grid) Bounds() image.Rectangle {
 
 func (g *Grid) At(x, y int) color.Color {
 	index := g.xyToIndex(x,y)
-	return color.Gray{uint8(g.grid[index])}
+	if g.grid[index] > int32(CRITICAL) {
+		return color.Gray{uint8(255)}
+	}
+	return color.Gray{uint8(255 / CRITICAL * int(g.grid[index]))}
 }
 
 func (g *Grid) createImage(name string) {

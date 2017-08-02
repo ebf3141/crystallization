@@ -8,13 +8,17 @@ var r uint64
 var bits int
 
 func Rand9() int {
-     if (bits < 4) {
-         r = Random.Uint64()
-         bits = 64
-     }
-
-     bits -= 4
-     val := int(r & 0x0f)
-     r = r >> 4
-     return val % 9
+	if (bits < 6) {
+		r = Random.Uint64()
+		bits = 64
+	}
+	
+	bits -= 6
+	val := int(r & 0x3f)
+	r = r >> 6
+	if val != 63{
+		return val % 9
+	}
+	
+	return Rand9()
 }
