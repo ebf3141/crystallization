@@ -18,6 +18,10 @@ var CRITICAL int
 var iterations int
 var imageName string
 var dataName string
+
+var diffusion int
+
+var outputs int
 /*
 var grid [WIDTH][HEIGHT]int
 var grid2 [WIDTH][HEIGHT]int
@@ -133,6 +137,8 @@ func initialize() {
 	flag.IntVar(&FLUX, "flux", 1000, "number of monomers added / step")
 	flag.IntVar(&CRITICAL, "crit", 5, "critical number for crystallization")
 	flag.IntVar(&iterations, "iter", 3000, "number of iterations")
+	flag.IntVar(&diffusion, "diff", 1, "diffusion constant")
+	flag.IntVar(&outputs, "out", 5000, "how many iterations to wait between outputting file")
 	flag.StringVar(&imageName, "image", "crystals.png", "name for file containing image")
 	flag.StringVar(&dataName, "file", "data", "name for data file")
 	flag.Parse()
@@ -158,11 +164,15 @@ func main() {
 	initialize()
 	for i := 0; i < iterations; i++ {
 		addMonomers(FLUX)
-		brownian()
+		for j := 0; j < diffusion; j++ {
+			brownian()
+		}
 		if i%200 == 0 {
 			fmt.Printf("\n Step: %d ", i)
 			findCrystals()
-
+		}
+		if i%outputs == 0{
+			writeGrid(dataName + '-' + fmt.Sprint(i))
 		}
 	}
 	g.createImage(imageName)
