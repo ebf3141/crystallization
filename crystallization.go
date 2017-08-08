@@ -172,7 +172,7 @@ func main() {
 			findCrystals()
 		}
 		if i%outputs == 0{
-			writeGrid(dataName + '-' + fmt.Sprint(i))
+			writeGrid(dataName + "-" + fmt.Sprint(i))
 		}
 	}
 	g.createImage(imageName)
