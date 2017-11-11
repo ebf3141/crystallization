@@ -8,131 +8,154 @@ import (
 	"encoding/binary"
 )
 
+//Width, height, area of grid
 const WIDTH = 1000
 const HEIGHT = 1000
 var AREA = WIDTH * HEIGHT
-//var FLUX = 1000
-//var CRITICAL = 8
+
+//Number of monomers added each step
 var FLUX int
+
+//Number of monomers necessary for a crystal to form
 var CRITICAL int
+
+//Number of iterations the program runs for
 var iterations int
+
+//Names for output files
 var imageName string
 var dataName string
 
+//Number of times to run brownian motion in each iteration
 var diffusion int
 
+// How often to output a data file
 var outputs int
-/*
-var grid [WIDTH][HEIGHT]int
-var grid2 [WIDTH][HEIGHT]int
-var g = &grid
-var g2 = &grid2
 
-var wg sync.WaitGroup
-*/
-
+//Grid is main data storage
+//One-dimensional array of cells, each storing a number of monomers
+//Separate file for grid functions
 var g = makeGrid(WIDTH, HEIGHT)
-var g2 = makeGrid(WIDTH, HEIGHT)
+
+//List of free  monomers so I don't have to iterate through the whole grid
+var list = make([]int, 500000)
+var numMonomers int //number of free monomers
+
+//A separate boolean array for storing obstruction locations
+var obstructions [WIDTH * HEIGHT]bool
+
+//Lookup tables for more efficient monomer movement
+var lookup0, lookup1, lookup2, lookup3, lookup4, lookup5, lookup6, lookup7, lookup8 [WIDTH*HEIGHT]int
+
+//An array of lookup tables
+var lookups = [9][WIDTH*HEIGHT]int{lookup0,lookup1,lookup2,lookup3,lookup4,lookup5,lookup6,lookup7,lookup8}
+
+//Fills in obstructions array
+func setObstructions(xSize, xSpacing, ySize, ySpacing int) {
+	for x := 0; x < WIDTH; x++ {
+		for y := 0; y<HEIGHT; y++ {
+			if ((x%(xSize+xSpacing) >= xSpacing) && (y%(ySize+ySpacing) >= ySpacing)) {
+				obstructions[x + y * WIDTH] = true
+			}
+		}
+	}
+}
+
+//Creates lookup tables
+func createLookups() {
+	nearestNeighborOffsets := [9]int {-WIDTH - 1, -WIDTH, -WIDTH + 1, -1, 0, 1, WIDTH-1, WIDTH, WIDTH+1}
+	for i := 0; i < 9; i++ {
+		for j := 0; j < AREA; j++ {
+			newIndex := j + nearestNeighborOffsets[i]
+			if newIndex < 0 {
+				newIndex = newIndex + AREA
+			}
+			if newIndex >= AREA {
+				newIndex = newIndex - AREA
+			}
+			if obstructions[newIndex] {
+				newIndex = -1
+			}
+			lookups[i][j] = newIndex
+		}
+	}
+}
+		
 
 func addMonomers(f int) {
 	// adds f monomers
 	for i := 0; i < f; i++ {
+		//Random coordinate
 		coord := fastrand.Random.Int() % AREA
-		g.grid[coord]++
+		//Only adds to unobstructed sites
+		if !obstructions[coord] {
+			//Adds monomer to grid and list
+			g.grid[coord]++
+			list[numMonomers] = coord
+			numMonomers++
+		}
 	}
 }
 
 func brownian() {
 	// moves the monomers around unless they are part of a crystal
 	grid := g.grid
-	grid2 := g2.grid
-	var k int32
-	for i := 0; i < AREA; i++ {
-		cell := grid[i]
-		if cell < int32(CRITICAL) {
-			for k = 0; k < cell; k++ {
-				newcoord := g.getRandomNeighbor(i)
-				grid2[newcoord]++
+	//nextOpenSpace is index in list to write to
+	//to prevent empty spaces in list, separate read/write locations
+	//monomers all moved to next open space
+	//when monomers join crystals, they are overwritten
+	nextOpenSpace := 0
+	//loops through monomer-containing cells
+	for i := 0; i < numMonomers; i++ {
+		cell := grid[list[i]]
+		if cell < int32(CRITICAL) { 
+			//generates a new coordinate for the monomer to move to
+			newcoord := -1
+			for newcoord < 0 {
+				//Uses customized rng for more efficiency
+				newcoord = lookups[fastrand.Rand9()][list[i]]
 			}
-		} else {
-			grid2[i]=grid[i]
+			//moves monomer in grid
+			grid[newcoord]++
+			grid[list[i]]--
+			//moves monomer in list and increments write location
+			list[nextOpenSpace] = newcoord
+			nextOpenSpace++
 		}
-		grid[i] = 0
+		//if monomer part of crystal, nextOpenSpace not incremented and crystal overwritten
+		
 	}
-	temp := g
-	g = g2
-	g2 = temp
-}
-/*
-func cBrownian(startRow int, endRow int){
-	// moves the monomers around unless they are part of a crystal
-	for i := startRow; i < endRow; i++ {
-		for j := 0; j < HEIGHT; j++ {
-			cell := g[i][j]
-			if cell < CRITICAL {
-				for k := 0; k < cell; k++ {
-					newX := i + rand.Intn(3) - 1
-					newY := j + rand.Intn(3) - 1
-					if newX == 1000 {
-						newX = 0
-					}
-					if newX == -1 {
-						newX = 999
-					}
-					if newY == 1000 {
-						newY = 0
-					}
-					if newY == -1 {
-						newY = 999
-					}
-					g2[newX][newY]++
-				}
-			} else {
-				g2[i][j] = g[i][j]
-			}
-			g[i][j] = 0
-		}
-	}
-	wg.Done()
+	//adjusts number of free monomers
+	numMonomers = nextOpenSpace
 }
 
-func syncBrownian() {
-	for i := 0; i < 4; i++ {
-		wg.Add(1)
-		go cBrownian(HEIGHT/4*i, HEIGHT/4*(i+1))
-	}
-	wg.Wait()
-	temp := g
-	g = g2
-	g2 = temp
-}
-*/
-
+//finds all crystals
 func findCrystals() {
-	var crystalList [1][3]int
-	cl := crystalList[:]
-	max := 0
-	count := 0
-	monomers := 0
-	for i := 0; i < AREA; i++ {
-		if g.grid[i] >= int32(CRITICAL) {
+	var crystalList [1][3]int //stores coordinates, num monomers
+	cl := crystalList[:] 
+	max := 0 //max monomers in one cell
+	count := 0 //count of crystals
+	monomers := 0 //total monomers not part of crystals
+	for i := 0; i < AREA; i++ { //loops through grid
+		if g.grid[i] >= int32(CRITICAL) { 
 			x, y := g.indexToXY(i)
 			crystal := [3]int{x,y, int(g.grid[i])}
-			cl = append(cl, crystal)
-			count++
+			cl = append(cl, crystal) 
+			count++ 
 		} else {
-			monomers += int(g.grid[i])
+			monomers += int(g.grid[i]) 
 		}
 		if int(g.grid[i]) >= max {
-			max = int(g.grid[i])
+			max = int(g.grid[i]) 
 		}
 	}
-	//fmt.Print(cl)
+	//prints results
 	fmt.Printf("Max # monomers: %d ", max)
 	fmt.Printf("# Crystals: %d ", count)
 	fmt.Printf("Avg monomers: %f",float64(monomers)/float64(g.area))
 }
 
+//takes command-line arguments, sets variables
 func initialize() {
 	flag.IntVar(&FLUX, "flux", 1000, "number of monomers added / step")
 	flag.IntVar(&CRITICAL, "crit", 5, "critical number for crystallization")
@@ -144,29 +167,39 @@ func initialize() {
 	flag.Parse()
 }
 
+//writes contents of grid to file
 func writeGrid(filename string) {
 	f, _ := os.Create(filename)
-	binary.Write(f, binary.LittleEndian, uint32(0x21464245))//magic number: "EBF!"
-	binary.Write(f, binary.LittleEndian, uint32(g.W))
-	binary.Write(f, binary.LittleEndian, uint32(g.H))
+	//file header has magic # plus constants
+	binary.Write(f, binary.LittleEndian, uint32(0x21464245))//magic number: "EBF!" for id
+	binary.Write(f, binary.LittleEndian, uint32(g.W)) 
+	binary.Write(f, binary.LittleEndian, uint32(g.H)) 
 	binary.Write(f, binary.LittleEndian, uint32(FLUX))
 	binary.Write(f, binary.LittleEndian, uint32(CRITICAL))
 	binary.Write(f, binary.LittleEndian, uint32(iterations))
+	//then writes grid itself
 	err := binary.Write(f, binary.LittleEndian, g.grid)
 	if err != nil {
-		fmt.Println("binary.Write failed:", err)
+		fmt.Println("binary.Write failed:", err) //error handler
 	}
 	f.Close()
 }
 	
-
+//main function
 func main() {
+	//sets stuff up
 	initialize()
+	numMonomers = 0
+	setObstructions(1,1000,1,1000)
+	createLookups()
+	//main loop of program
 	for i := 0; i < iterations; i++ {
+		//each step: add monomer, do brownian motion
 		addMonomers(FLUX)
 		for j := 0; j < diffusion; j++ {
 			brownian()
 		}
+		//occasionally: run findCrystals and create files
 		if i%200 == 0 {
 			fmt.Printf("\n Step: %d ", i)
 			findCrystals()
@@ -175,7 +208,20 @@ func main() {
 			writeGrid(dataName + "-" + fmt.Sprint(i))
 		}
 	}
+	//at end: create image and one last file
 	g.createImage(imageName)
 	writeGrid(dataName)
 	
 }
+
+/*
+func main() {
+	initialize()
+	setObstructions(40,60,40,60)
+	addMonomers(5000000)
+	for i:=0; i<100; i++ {
+		brownian()
+	}
+	g.createImage("obstructiontest.png")
+}
+	*/
