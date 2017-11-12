@@ -32,23 +32,8 @@ var diffusion int
 // How often to output a data file
 var outputs int
 
-//Grid is main data storage
-//One-dimensional array of cells, each storing a number of monomers
-//Separate file for grid functions
-var g = makeGrid(WIDTH, HEIGHT)
-
-//List of free  monomers so I don't have to iterate through the whole grid
-var list = make([]int, 500000)
-var numMonomers int //number of free monomers
-
 //A separate boolean array for storing obstruction locations
 var obstructions [WIDTH * HEIGHT]bool
-
-//Lookup tables for more efficient monomer movement
-var lookup0, lookup1, lookup2, lookup3, lookup4, lookup5, lookup6, lookup7, lookup8 [WIDTH*HEIGHT]int
-
-//An array of lookup tables
-var lookups = [9][WIDTH*HEIGHT]int{lookup0,lookup1,lookup2,lookup3,lookup4,lookup5,lookup6,lookup7,lookup8}
 
 //Fills in obstructions array
 func setObstructions(xSize, xSpacing, ySize, ySpacing int) {
@@ -60,6 +45,25 @@ func setObstructions(xSize, xSpacing, ySize, ySpacing int) {
 		}
 	}
 }
+
+//Grid is main data storage
+//One-dimensional array of cells, each storing a number of monomers
+//Separate file for grid functions
+var g = makeGrid(WIDTH, HEIGHT, &obstructions)
+
+//List of free  monomers so I don't have to iterate through the whole grid
+var list = make([]int, 500000)
+var numMonomers int //number of free monomers
+
+
+
+//Lookup tables for more efficient monomer movement
+var lookup0, lookup1, lookup2, lookup3, lookup4, lookup5, lookup6, lookup7, lookup8 [WIDTH*HEIGHT]int
+
+//An array of lookup tables
+var lookups = [9][WIDTH*HEIGHT]int{lookup0,lookup1,lookup2,lookup3,lookup4,lookup5,lookup6,lookup7,lookup8}
+
+
 
 //Creates lookup tables
 func createLookups() {
@@ -186,6 +190,7 @@ func writeGrid(filename string) {
 }
 	
 //main function
+
 func main() {
 	//sets stuff up
 	initialize()
@@ -218,10 +223,11 @@ func main() {
 func main() {
 	initialize()
 	setObstructions(40,60,40,60)
-	addMonomers(5000000)
+	addMonomers(100000)
 	for i:=0; i<100; i++ {
 		brownian()
 	}
-	g.createImage("obstructiontest.png")
+	g.createImage("imagetest.png")
 }
-	*/
+
+*/

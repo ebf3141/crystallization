@@ -14,15 +14,17 @@ type Grid struct {
 	grid []int32
 	area int
 	nearestNeighborOffsets [9]int
-}
+	obstructions *[1000000]bool
+	}
 
-func makeGrid(width, height int) *Grid {
+func makeGrid(width, height int, obstructions *[1000000]bool) *Grid {
 	g := new(Grid)
 	g.W = width
 	g.H = height
 	g.grid = make([]int32, width*height)
 	g.area = width * height
 	g.nearestNeighborOffsets = [9]int {-width - 1, -width, -width + 1, -1, 0, 1, width-1, width, width+1}
+	g.obstructions = obstructions
 	return g
 	//return &Grid{width, height, make([]int, width*height)}
 }
@@ -73,7 +75,7 @@ func (g *Grid) getRandomNeighbor(c int) int {
 }
 
 func (g *Grid) ColorModel() color.Model {
-	return color.GrayModel
+	return color.RGBAModel
 }
 
 func (g *Grid) Bounds() image.Rectangle {
@@ -83,7 +85,9 @@ func (g *Grid) Bounds() image.Rectangle {
 func (g *Grid) At(x, y int) color.Color {
 	index := g.xyToIndex(x,y)
 	if g.grid[index] > int32(CRITICAL) {
-		return color.Gray{uint8(255)}
+		return color.RGBA{255,255,255,255}
+	} else if g.obstructions[index] {
+		return color.RGBA{0,0,255,255}
 	}
 	return color.Gray{uint8(255 / CRITICAL * int(g.grid[index]))}
 }
