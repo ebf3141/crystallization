@@ -195,7 +195,7 @@ func main() {
 	//sets stuff up
 	initialize()
 	numMonomers = 0
-	setObstructions(1,1000,1,1000)
+	setObstructions(80,80,80,80)
 	createLookups()
 	//main loop of program
 	for i := 0; i < iterations; i++ {

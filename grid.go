@@ -85,7 +85,7 @@ func (g *Grid) Bounds() image.Rectangle {
 func (g *Grid) At(x, y int) color.Color {
 	index := g.xyToIndex(x,y)
 	if g.grid[index] > int32(CRITICAL) {
-		return color.RGBA{255,255,255,255}
+		return color.RGBA{255,0,0,255}
 	} else if g.obstructions[index] {
 		return color.RGBA{0,0,255,255}
 	}
