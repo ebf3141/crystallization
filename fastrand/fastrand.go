@@ -1,9 +1,10 @@
 package fastrand
 
 import "time"
+import "math/rand"
 
 var seed uint64 = uint64(time.Now().UnixNano())
-
+var Random = rand.New(rand.NewSource(time.Now().UnixNano()))
 /*
  * This is the SplitMix64 algorithm used by the SpittableRandom class
  * as modified by https://github.com/vpxyz/xorshift
