@@ -35,6 +35,11 @@ var outputs int
 //A separate boolean array for storing obstruction locations
 var obstructions [WIDTH * HEIGHT]bool
 
+var x_size int
+var y_size int
+var x_spacing int
+var y_spacing int
+
 //Fills in obstructions array
 func setObstructions(xSize, xSpacing, ySize, ySpacing int) {
 	for x := 0; x < WIDTH; x++ {
@@ -168,6 +173,10 @@ func initialize() {
 	flag.IntVar(&outputs, "out", 5000, "how many iterations to wait between outputting file")
 	flag.StringVar(&imageName, "image", "crystals.png", "name for file containing image")
 	flag.StringVar(&dataName, "file", "data", "name for data file")
+	flag.IntVar(&x_size, "xSize", 80, "width of obstructions")
+	flag.IntVar(&x_spacing, "xSpacing", 80, "spacing between obstructions (edge-to-edge")
+	flag.IntVar(&y_size, "ySize", 80, "height of obstructions")
+	flag.IntVar(&y_spacing, "ySpacing", 80, "spacing between obstructions (edge-to-edge")
 	flag.Parse()
 }
 
@@ -195,7 +204,7 @@ func main() {
 	//sets stuff up
 	initialize()
 	numMonomers = 0
-	setObstructions(80,80,80,80)
+	setObstructions(80,160,80,160)
 	createLookups()
 	//main loop of program
 	for i := 0; i < iterations; i++ {
