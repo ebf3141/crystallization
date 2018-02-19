@@ -204,7 +204,7 @@ func main() {
 	//sets stuff up
 	initialize()
 	numMonomers = 0
-	setObstructions(80,160,80,160)
+	setObstructions(x_size,x_spacing,y_size,y_spacing)
 	createLookups()
 	//main loop of program
 	for i := 0; i < iterations; i++ {
@@ -240,3 +240,4 @@ func main() {
 }
 
 */
+
